@@ -1,0 +1,89 @@
+#include <LiquidCrystal.h>
+#include <math.h>
+
+#define LCD_RS 1
+#define LCD_EN 2
+#define LCD_D4 4
+#define LCD_D5 5
+#define LCD_D6 6
+#define LCD_D7 7
+#define PUSH_BTN_R 9 //button for raising the temperature
+#define PUSH_BTN_L 8 //button for lowering the temperature
+#define TMP36 A0 //temperature sensor pin
+
+
+int ideal_temp = 20;//the ideal temperature
+int cnt_button_state_r = 0;//the state of the PUSH_BTN_R initialized with 0 just in case
+int cnt_button_state_r_current = 1;//the state when PUSH_BTN_R is pressed
+int cnt_button_state_l = 0;//the state of the PUSH_BTN_L
+int cnt_button_state_l_current = 1;//the state when PUSH_BTN_L is pressed
+int motor_pin = 11;//the pin to control the DC Motor
+
+LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+
+void setup()
+{
+ // Serial.begin(9600);
+  lcd.begin(16,2);//initialise the LCD
+  pinMode(TMP36, INPUT);
+  pinMode(PUSH_BTN_L, INPUT);//set the push button as INPUT
+  digitalWrite(PUSH_BTN_L, HIGH);//turn on pullup resistors
+  pinMode(motor_pin, OUTPUT);
+  
+  
+}
+
+void push_btn_int_r(){
+
+   pinMode(PUSH_BTN_R, INPUT);//set the push button as INPUT
+  	digitalWrite(PUSH_BTN_R, HIGH);//turn on pullup resistors
+  
+    PCICR |= (1 << PCIE2);// enable PCINT2 interrupts
+    PCMSK2 |= (1 << PCINT18);  //unmask pin 2 to generate int
+}
+
+
+
+void loop()
+{
+  float sensor_value = analogRead(TMP36);
+  //analog reading of temperature sensor
+  float sensor_voltage = (sensor_value / 1023.0 * 5.0);
+  //converting the analog reading into voltage
+  float sensor_temp = (sensor_voltage - 0.5) * 100;
+  float diff_temp = ideal_temp - sensor_temp;//the difference between the ideal temperature and the sensors temperature
+  float speed = 25.5;//this represents 10% power of the DC Motor
+  float old_temp;
+  
+  push_btn_int_r();
+  if(cnt_button_state_l == LOW && cnt_button_state_l_current == 1){
+   ideal_temp--; 
+    cnt_button_state_l_current = 0;
+  }
+  if(cnt_button_state_l == HIGH){
+   cnt_button_state_l_current = 1; 
+  }
+  cnt_button_state_r = digitalRead(PUSH_BTN_R);//gets the digital value of the button
+  cnt_button_state_l = digitalRead(PUSH_BTN_L);//gets the digital value of the button
+  lcd.setCursor(0,0);
+  lcd.print(ideal_temp);
+  lcd.setCursor(4,0);
+  lcd.print("C");
+  //clearing the LCD after every different temperature
+    if(diff_temp != old_temp){
+     lcd.clear();
+      old_temp = diff_temp;
+    }
+  analogWrite(motor_pin,speed * diff_temp);
+}
+
+ISR(PCINT2_vect){
+  if(cnt_button_state_r == LOW && cnt_button_state_r_current == 1){
+   ideal_temp++; 
+    cnt_button_state_r_current = 0;
+  }
+  if(cnt_button_state_r == HIGH){
+   cnt_button_state_r_current = 1; 
+  }
+}
+

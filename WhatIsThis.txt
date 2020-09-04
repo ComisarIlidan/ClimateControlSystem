@@ -1,0 +1,9 @@
+The System uses a TMP36 Temperaute Sensor to simulate the outside temperature,an LCD to show the desired 
+temperature,2 buttons to change it,1 DC Motor to simulate the cooling/warming up and 1 HBridge for DC Motor
+control.
+
+I started this project mainly to test the PCINT interrupt for push button and so far,only one works,the other
+one uses standard coding.They are meant to increment only once,that's why i used a variable to make sure that
+the button does not increment multiple times in one push and/or if it is holded down.
+
+This project is not yet finished and the whole circuit shall be improved over time.
